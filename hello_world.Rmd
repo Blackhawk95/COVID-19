@@ -1,0 +1,71 @@
+---
+title: "hello_world"
+author: "abhijith"
+date: "2023-01-08"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## download dataset
+
+```{r}
+download.file('https://covid.ourworldindata.org/data/owid-covid-data.csv', 
+              destfile = '/Users/abhij/Downloads/owid-covid-data.csv')
+```
+
+## libraries 
+
+```{r, echo = FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+## Loading data and selecting country specific data (not used)
+
+```{r, echo = TRUE}
+covid_df <- read.csv("/Users/abhij/Downloads/owid-covid-data.csv")
+
+covid_df$date<-as.Date(covid_df$date, "%Y-%m-%d")
+
+country_wise_df <- covid_df %>% arrange(desc(date)) %>% group_by(location) %>%
+  distinct(location, .keep_all = TRUE) %>% na_if("") %>% 
+  filter(!is.na(continent)) %>% head(5)
+country_wise_df
+```
+
+## Plot the country_wise data for Asian countries total_deaths_per_million vs 
+human_development_index till 2021 dec 31st
+
+```{r}
+country_wise_2021_df <- covid_df %>% 
+  arrange(desc(date)) %>%  # Data till 2021 dec 31
+  filter( date < as.Date('1/1/2022',format='%m/%d/%Y') ) %>% 
+  group_by(location) %>% # to only include latest data
+  distinct(location, .keep_all = TRUE) %>% 
+  na_if("") %>% # to remove non country data
+  filter(!is.na(continent))
+
+country_wise_2021_df %>%
+  filter(continent %in% c('Asia')) %>%
+  select(continent, location, total_deaths_per_million, human_development_index) %>%
+  filter(!is.na(human_development_index)) %>%
+  filter(!is.na(total_deaths_per_million)) %>%
+  ggplot(aes(x=total_deaths_per_million, y=human_development_index, label=location)) + 
+    geom_point(size=2, shape=20) + 
+    geom_text(size = 3 , aes(color = factor(continent)))
+```
+## Plot the country_wise data for Americas total_deaths_per_million vs 
+human_development_index till 2021 dec 31st
+
+```{r}
+country_wise_2021_df %>%
+  filter(continent %in% c('South America', 'North America')) %>%
+  select(continent, location, total_deaths_per_million, human_development_index) %>%
+  filter(!is.na(human_development_index)) %>%
+  filter(!is.na(total_deaths_per_million)) %>%
+  ggplot(aes(x=total_deaths_per_million, y=human_development_index, label=location)) + 
+    geom_point(size=2, shape=20) + 
+    geom_text(size = 3 , aes(color = factor(continent)))
+```
+
