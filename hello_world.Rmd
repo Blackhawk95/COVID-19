@@ -19,6 +19,8 @@ download.file('https://covid.ourworldindata.org/data/owid-covid-data.csv',
 ```{r, echo = FALSE}
 library(dplyr)
 library(ggplot2)
+library(lubridate)
+library(ggpubr)
 ```
 
 ## Loading data and selecting country specific data (not used)
@@ -55,17 +57,68 @@ country_wise_2021_df %>%
     geom_point(size=2, shape=20) + 
     geom_text(size = 3 , aes(color = factor(continent)))
 ```
-## Plot the country_wise data for Americas total_deaths_per_million vs 
-human_development_index till 2021 dec 31st
+## Asian countries time series data
 
 ```{r}
-country_wise_2021_df %>%
-  filter(continent %in% c('South America', 'North America')) %>%
-  select(continent, location, total_deaths_per_million, human_development_index) %>%
-  filter(!is.na(human_development_index)) %>%
-  filter(!is.na(total_deaths_per_million)) %>%
-  ggplot(aes(x=total_deaths_per_million, y=human_development_index, label=location)) + 
-    geom_point(size=2, shape=20) + 
-    geom_text(size = 3 , aes(color = factor(continent)))
-```
+Asia_df <- covid_df %>%
+  filter(continent %in% c('Asia')) %>% 
+  na_if("") %>% 
+  filter(!is.na(continent))
 
+print(unique(Asia_df$location))
+```
+# Plot logic
+
+```{r echo=FALSE, warning=FALSE}
+
+plot_total_deaths <- Asia_df %>%
+  filter(location %in% c("India")) %>%
+  replace(is.na(.), 0) %>%
+  select(location, total_deaths, date) %>%
+    ggplot(aes(x=date, y=total_deaths)) + 
+    geom_area() +
+    scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+
+plot_people_vaccinated <- Asia_df %>%
+  filter(location %in% c("India")) %>%
+  select(location, people_vaccinated, date) %>%
+    ggplot(aes(x=date, y=people_vaccinated)) + 
+    geom_area() +
+    scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+  
+
+plot_new_cases_smoothed <- Asia_df %>%
+  filter(location %in% c("India")) %>%
+  select(location, new_cases_smoothed, date) %>%
+    ggplot(aes(x=date)) + 
+    geom_line( aes(y=new_cases_smoothed)) + 
+    scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+
+plot_stringency_index <- Asia_df %>%
+  filter(location %in% c("India")) %>%
+  select(location, stringency_index, date) %>%
+    ggplot(aes(x=date, y=stringency_index)) + 
+    geom_line() + 
+    scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+
+# all plot goes here ( squished plot doesn't look good, feel free to change around)
+output1 <- ggarrange(plot_total_deaths, plot_people_vaccinated, 
+          labels = c("Total deaths", "Total People Vaccinated"),
+          hjust = 0,
+          label.x = .20,
+          font.label = list(size = 12, color = "black", face = "bold", 
+                            family = NULL),
+          ncol = 1, nrow = 2, align = "v") # adjust these row & col fir shape
+
+# all plot goes here ( squished plot doesn't look good, feel free to change around)
+output2 <- ggarrange(plot_new_cases_smoothed, plot_stringency_index, 
+          labels = c("New Cases", "Stringency Index"),
+          label.x = .70,
+          hjust = 0,
+          font.label = list(size = 12, color = "black", face = "bold", 
+                            family = NULL),
+          ncol = 1, nrow = 2, align = "v") # adjust these row & col fir shape
+
+plot(output1)
+plot(output2)
+```
